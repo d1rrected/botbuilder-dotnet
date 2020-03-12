@@ -1,0 +1,14 @@
+{
+    "$kind": "Microsoft.AdaptiveDialog",
+    "triggers": [
+        {
+            "$kind": "Microsoft.OnUnknownIntent",
+            "actions": [
+                {
+                    "$kind": "Microsoft.SendActivity",
+                    "activity": "You said '${turn.activity.text}'"
+                }
+            ]
+        }
+    ]
+}
