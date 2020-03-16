@@ -39,12 +39,25 @@ namespace Microsoft.BotBuilderSamples
                     {
                         Actions = new List<Dialog>()
                         {
-                            new TextInput()
-                            {
-                                Prompt = new ActivityTemplate("what is your name?"),
-                                Property = "user.name"
-                            },
+                            // new TextInput()
+                            // {
+                            //     Prompt = new ActivityTemplate("what is your name?"),
+                            //     Property = "user.name"
+                            // },
                             new SendActivity("I have ${user.name}")
+                        }
+                    },
+                    new OnEndOfActions()
+                    {
+                        Condition = "!turn.isRun",
+                        Actions = new List<Dialog>()
+                        {
+                            new SendActivity("End of actions!"),
+                            new SetProperty()
+                            {
+                                Property = "turn.isRun",
+                                Value = "=true"
+                            }
                         }
                     },
                     new OnIntent()
