@@ -34,7 +34,6 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
 
         private readonly Task task;
 
-        private Protocol.LaunchAttach options = new Protocol.LaunchAttach();
         private int sequence = 0;
 
         public DialogDebugAdapter(int port, ISourceMap sourceMap, IBreakpoints breakpoints, Action terminate, IEvents events = null, ICodeModel codeModel = null, IDataModel dataModel = null, ILogger logger = null, ICoercion coercion = null)
@@ -65,7 +64,7 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
             Continue,
 
             /// <summary>
-            /// Signal to "Step" or to "Continue".
+            /// Signal to "Step" or to "Ccontinue".
             /// </summary>
             Next,
 
@@ -130,20 +129,15 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
 
                 if (threadByTurnId.TryGetValue(TurnIdFor(context.Context), out ThreadModel thread))
                 {
-                    thread.SetLast(context, item, more);
+                    thread.LastContext = context;
+                    thread.LastItem = item;
+                    thread.LastMore = more;
 
                     var run = thread.Run;
                     if (breakpoints.IsBreakPoint(item) && events[more])
                     {
                         run.Post(Phase.Breakpoint);
                     }
-
-                    if (this.options.BreakOnStart && thread.StepCount == 0 && events[more])
-                    {
-                        run.Post(Phase.Breakpoint);
-                    }
-
-                    ++thread.StepCount;
 
                     // TODO: implement asynchronous condition variables
                     Monitor.Enter(run.Gate);
@@ -340,7 +334,7 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
             }
             else if (phase == Phase.Continue)
             {
-                await SendAsync(Protocol.Event.From(NextSeq, "continued", new { threadId, allThreadsContinued = false }), cancellationToken).ConfigureAwait(false);
+                await SendAsync(Protocol.Event.From(NextSeq, "continue", new { threadId, allThreadsContinued = false }), cancellationToken).ConfigureAwait(false);
             }
             else
             {
@@ -410,12 +404,10 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
             }
             else if (message is Protocol.Request<Protocol.Launch> launch)
             {
-                this.options = launch.Arguments;
                 return Protocol.Response.From(NextSeq, launch, new { });
             }
             else if (message is Protocol.Request<Protocol.Attach> attach)
             {
-                this.options = attach.Arguments;
                 return Protocol.Response.From(NextSeq, attach, new { });
             }
             else if (message is Protocol.Request<Protocol.SetBreakpoints> setBreakpoints)
@@ -482,9 +474,6 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
                         Id = EncodeFrame(thread, frame),
                         Name = frame.Name
                     };
-
-                    var item = this.codeModel.NameFor(frame.Item);
-                    DebuggerSourceMap.Assign(stackFrame, item, frame.More);
 
                     if (this.sourceMap.TryGetValue(frame.Item, out var range))
                     {
@@ -665,23 +654,9 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
 
             public ICodeModel CodeModel { get; }
 
-            public int StepCount { get; set; } = 0;
-
             public string Name => TurnContext.Activity.Text;
 
-            public IReadOnlyList<ICodePoint> Frames
-            {
-                get
-                {
-                    // try to avoid regenerating Identifier values within a breakpoint
-                    if (LastFrames == null)
-                    {
-                        LastFrames = CodeModel.PointsFor(LastContext, LastItem, LastMore);
-                    }
-
-                    return LastFrames;
-                }
-            }
+            public IReadOnlyList<ICodePoint> Frames => CodeModel.PointsFor(LastContext, LastItem, LastMore);
 
             public RunModel Run { get; } = new RunModel();
 
@@ -689,22 +664,11 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
 
             public Identifier<object> ValueCodes { get; } = new Identifier<object>();
 
-            public DialogContext LastContext { get; private set; }
+            public DialogContext LastContext { get; set; }
 
-            public object LastItem { get; private set; }
+            public object LastItem { get; set; }
 
-            public string LastMore { get; private set; }
-
-            private IReadOnlyList<ICodePoint> LastFrames { get; set; }
-
-            public void SetLast(DialogContext context, object item, string more)
-            {
-                LastContext = context;
-                LastItem = item;
-                LastMore = more;
-
-                LastFrames = null;
-            }
+            public string LastMore { get; set; }
         }
     }
 }

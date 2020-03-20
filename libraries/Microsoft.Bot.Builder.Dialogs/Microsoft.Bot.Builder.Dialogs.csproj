@@ -25,7 +25,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DebugType>Full</DebugType>
     <DebugSymbols>true</DebugSymbols>
-    <DelaySign>false</DelaySign>
   </PropertyGroup>
 
   <ItemGroup>
@@ -52,7 +51,7 @@
     <PackageReference Include="Microsoft.Bot.Builder" Condition=" '$(IsBuildServer)' != '' " Version="$(ReleasePackageVersion)" />
     <PackageReference Include="Microsoft.Recognizers.Text.Choice" Version="1.2.9" />
     <PackageReference Include="Microsoft.Recognizers.Text.DateTime" Version="1.2.9" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
   </ItemGroup>
 
   <ItemGroup>

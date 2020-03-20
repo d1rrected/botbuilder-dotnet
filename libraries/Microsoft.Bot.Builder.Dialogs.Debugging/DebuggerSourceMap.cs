@@ -52,12 +52,6 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
             }
         }
 
-        public static void Assign(Protocol.Range target, string item, string more)
-        {
-            target.Item = item;
-            target.More = more;
-        }
-
         void ISourceMap.Add(object item, SourceRange range)
         {
             if (!Path.IsPathRooted(range.Path))
@@ -206,10 +200,6 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
             row.Item = item;
             row.Breakpoint.Verified = source != null;
             Assign(row.Breakpoint, source);
-
-            var name = this.codeModel.NameFor(row.Item);
-            Assign(row.Breakpoint, name, null);
-
             return true;
         }
 

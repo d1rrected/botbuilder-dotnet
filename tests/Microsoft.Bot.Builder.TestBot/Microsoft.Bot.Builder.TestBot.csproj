@@ -6,9 +6,6 @@
     <RootNamespace>Microsoft.BotBuilderSamples</RootNamespace>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DelaySign>false</DelaySign>
-  </PropertyGroup>
   <ItemGroup>
     <Content Remove="Cards\welcomeCard.json" />
   </ItemGroup>

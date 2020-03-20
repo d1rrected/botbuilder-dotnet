@@ -22,21 +22,7 @@ namespace Microsoft.Bot.Builder.Dialogs.Debugging
 
         public string Name => CodeModel.NameFor(Item) + (More != null ? ":" + More : string.Empty);
 
-        public object Data
-        {
-            get
-            {
-                // try to avoid regenerating Identifier values within a breakpoint
-                if (CachedData == null)
-                {
-                    CachedData = DialogContext.GetState().GetMemorySnapshot();
-                }
-
-                return CachedData;
-            }
-        }
-
-        private object CachedData { get; set; }
+        public object Data => DialogContext.GetState().GetMemorySnapshot();
 
         private ICodeModel CodeModel { get; }
 
