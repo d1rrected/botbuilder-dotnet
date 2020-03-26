@@ -4,6 +4,7 @@
 #pragma warning disable SA1202 // Elements should be ordered by access
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using AdaptiveExpressions;
@@ -18,6 +19,21 @@ namespace Microsoft.Bot.Builder.AI.LanguageGeneration.Tests
     public class TemplatesTest
     {
         public TestContext TestContext { get; set; }
+
+        [TestMethod]
+        public void TestIssue3619()
+        {
+            var templates = Templates.ParseFile(GetExampleFilePath("issue3619.lg"));
+
+            var scope = new
+            {
+                answer = "myanswer",
+                prompts = new List<string> { "prompt" }
+            };
+
+            var evaled = templates.Evaluate("QnaCard", scope) as JObject;
+            Debug.WriteLine(evaled);
+        }
 
         [TestMethod]
         public void TestBasic()

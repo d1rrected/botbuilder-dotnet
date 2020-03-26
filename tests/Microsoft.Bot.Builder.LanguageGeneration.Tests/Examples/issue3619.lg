@@ -1,0 +1,17 @@
+﻿# QnaCard (answer, prompts)
+[Activity
+    Text = ${answer}
+    Attachments = ${if(empty(prompts), {}, QnaCardActionsCard(prompts))}
+]
+
+# QnaCardActionsCard (prompts)
+[HeroCard
+    buttons=${foreach(prompts, prompt, QnaCardAction(prompt))}
+]
+
+# QnaCardAction (prompt)
+[CardAction
+    Title = ${prompt}
+    Value = ${prompt}
+    type = imBack
+]
