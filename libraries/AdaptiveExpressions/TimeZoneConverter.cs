@@ -16,7 +16,7 @@ namespace AdaptiveExpressions
     /// iana ref: https://www.iana.org/time-zones.
     /// See database dictionary in file WindowsIanaMapping.
     /// </summary>
-    public static class TimeZoneConverter
+    internal static class TimeZoneConverter
     {
         private static IDictionary<string, string> ianaToWindowsMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static IDictionary<string, string> windowsToIanaMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

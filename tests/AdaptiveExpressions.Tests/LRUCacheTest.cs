@@ -117,7 +117,7 @@ namespace AdaptiveExpressions.Tests
             }
         }
 
-        public void StoreElement(LRUCache<int, int> cache, int numOfOps, int idx)
+        private void StoreElement(LRUCache<int, int> cache, int numOfOps, int idx)
         {
             for (int i = 0; i < numOfOps; i++)
             {

@@ -10,7 +10,7 @@ namespace AdaptiveExpressions
     /// </summary>
     /// <typeparam name="TKey">The type of the key to the cached item.</typeparam>
     /// <typeparam name="TValue">The type of the cached item.</typeparam>
-    public sealed class LRUCache<TKey, TValue>
+    internal sealed class LRUCache<TKey, TValue>
     {
         /// <summary>
         /// Default maximum number of elements to cache.

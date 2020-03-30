@@ -7,10 +7,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using AdaptiveExpressions.Converters;
 using AdaptiveExpressions.Memory;
 using Newtonsoft.Json;
+
+[assembly: InternalsVisibleTo("AdaptiveExpressions.Tests")]
 
 namespace AdaptiveExpressions
 {
@@ -352,112 +355,6 @@ namespace AdaptiveExpressions
         }
 
         /// <summary>
-        /// Walking function for identifying static memory references in an expression.
-        /// </summary>
-        /// <param name="expression">Expression to analyze.</param>
-        /// <param name="extension">If present, called to override lookup for things like template expansion.</param>
-        /// <returns>Accessor path of expression which is a potential partial path and the full path found so far.</returns>
-        public (string path, HashSet<string> references) ReferenceWalk(Expression expression, Func<Expression, bool> extension = null)
-        {
-            string path = null;
-            var refs = new HashSet<string>();
-            if (extension == null || !extension(expression))
-            {
-                var children = expression.Children;
-                if (expression.Type == ExpressionType.Accessor)
-                {
-                    var prop = (string)((Constant)children[0]).Value;
-
-                    if (children.Length == 1)
-                    {
-                        path = prop;
-                    }
-
-                    if (children.Length == 2)
-                    {
-                        (path, refs) = ReferenceWalk(children[1], extension);
-                        if (path != null)
-                        {
-                            path = path + "." + prop;
-                        }
-
-                        // if path is null we still keep it null, won't append prop
-                        // because for example, first(items).x should not return x as refs
-                    }
-                }
-                else if (expression.Type == ExpressionType.Element)
-                {
-                    (path, refs) = ReferenceWalk(children[0], extension);
-                    if (path != null)
-                    {
-                        if (children[1] is Constant cnst)
-                        {
-                            if (cnst.ReturnType == ReturnType.String)
-                            {
-                                path += $".{cnst.Value}";
-                            }
-                            else
-                            {
-                                path += $"[{cnst.Value}]";
-                            }
-                        }
-                        else
-                        {
-                            refs.Add(path);
-                        }
-                    }
-
-                    var (idxPath, refs1) = ReferenceWalk(children[1], extension);
-                    refs.UnionWith(refs1);
-
-                    if (idxPath != null)
-                    {
-                        refs.Add(idxPath);
-                    }
-                }
-                else if (expression.Type == ExpressionType.Foreach ||
-                         expression.Type == ExpressionType.Where ||
-                         expression.Type == ExpressionType.Select)
-                {
-                    var (child0Path, refs0) = ReferenceWalk(children[0], extension);
-                    if (child0Path != null)
-                    {
-                        refs0.Add(child0Path);
-                    }
-
-                    var (child2Path, refs2) = ReferenceWalk(children[2], extension);
-                    if (child2Path != null)
-                    {
-                        refs2.Add(child2Path);
-                    }
-
-                    var iteratorName = (string)(children[1].Children[0] as Constant).Value;
-
-                    // filter references found in children 2 with iterator name
-                    var nonLocalRefs2 = refs2.Where(x => !(x.Equals(iteratorName) || x.StartsWith(iteratorName + '.') || x.StartsWith(iteratorName + '[')))
-                                             .ToList();
-
-                    refs.UnionWith(refs0);
-                    refs.UnionWith(nonLocalRefs2);
-                }
-                else
-                {
-                    foreach (var child in expression.Children)
-                    {
-                        var (childPath, refs0) = ReferenceWalk(child, extension);
-                        refs.UnionWith(refs0);
-                        if (childPath != null)
-                        {
-                            refs.Add(childPath);
-                        }
-                    }
-                }
-            }
-
-            return (path, refs);
-        }
-
-        /// <summary>
         /// Validate immediate expression.
         /// </summary>
         public void Validate() => Evaluator.ValidateExpression(this);
@@ -689,6 +586,112 @@ namespace AdaptiveExpressions
             }
 
             return builder.ToString();
+        }
+
+        /// <summary>
+        /// Walking function for identifying static memory references in an expression.
+        /// </summary>
+        /// <param name="expression">Expression to analyze.</param>
+        /// <param name="extension">If present, called to override lookup for things like template expansion.</param>
+        /// <returns>Accessor path of expression which is a potential partial path and the full path found so far.</returns>
+        private (string path, HashSet<string> references) ReferenceWalk(Expression expression, Func<Expression, bool> extension = null)
+        {
+            string path = null;
+            var refs = new HashSet<string>();
+            if (extension == null || !extension(expression))
+            {
+                var children = expression.Children;
+                if (expression.Type == ExpressionType.Accessor)
+                {
+                    var prop = (string)((Constant)children[0]).Value;
+
+                    if (children.Length == 1)
+                    {
+                        path = prop;
+                    }
+
+                    if (children.Length == 2)
+                    {
+                        (path, refs) = ReferenceWalk(children[1], extension);
+                        if (path != null)
+                        {
+                            path = path + "." + prop;
+                        }
+
+                        // if path is null we still keep it null, won't append prop
+                        // because for example, first(items).x should not return x as refs
+                    }
+                }
+                else if (expression.Type == ExpressionType.Element)
+                {
+                    (path, refs) = ReferenceWalk(children[0], extension);
+                    if (path != null)
+                    {
+                        if (children[1] is Constant cnst)
+                        {
+                            if (cnst.ReturnType == ReturnType.String)
+                            {
+                                path += $".{cnst.Value}";
+                            }
+                            else
+                            {
+                                path += $"[{cnst.Value}]";
+                            }
+                        }
+                        else
+                        {
+                            refs.Add(path);
+                        }
+                    }
+
+                    var (idxPath, refs1) = ReferenceWalk(children[1], extension);
+                    refs.UnionWith(refs1);
+
+                    if (idxPath != null)
+                    {
+                        refs.Add(idxPath);
+                    }
+                }
+                else if (expression.Type == ExpressionType.Foreach ||
+                         expression.Type == ExpressionType.Where ||
+                         expression.Type == ExpressionType.Select)
+                {
+                    var (child0Path, refs0) = ReferenceWalk(children[0], extension);
+                    if (child0Path != null)
+                    {
+                        refs0.Add(child0Path);
+                    }
+
+                    var (child2Path, refs2) = ReferenceWalk(children[2], extension);
+                    if (child2Path != null)
+                    {
+                        refs2.Add(child2Path);
+                    }
+
+                    var iteratorName = (string)(children[1].Children[0] as Constant).Value;
+
+                    // filter references found in children 2 with iterator name
+                    var nonLocalRefs2 = refs2.Where(x => !(x.Equals(iteratorName) || x.StartsWith(iteratorName + '.') || x.StartsWith(iteratorName + '[')))
+                                             .ToList();
+
+                    refs.UnionWith(refs0);
+                    refs.UnionWith(nonLocalRefs2);
+                }
+                else
+                {
+                    foreach (var child in expression.Children)
+                    {
+                        var (childPath, refs0) = ReferenceWalk(child, extension);
+                        refs.UnionWith(refs0);
+                        if (childPath != null)
+                        {
+                            refs.Add(childPath);
+                        }
+                    }
+                }
+            }
+
+            return (path, refs);
         }
 
         private string Error<T>(object result)

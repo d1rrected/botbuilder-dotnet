@@ -22,7 +22,7 @@ namespace Microsoft.Bot.Builder.LanguageGeneration
     /// <summary>
     /// Parser to turn lg content into a <see cref="Templates"/>.
     /// </summary>
-    public static class TemplatesParser
+    internal static class TemplatesParser
     {
         /// <summary>
         /// option regex.

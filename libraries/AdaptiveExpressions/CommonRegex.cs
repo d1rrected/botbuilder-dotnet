@@ -13,7 +13,7 @@ namespace AdaptiveExpressions
     /// PCRE ref: http://www.pcre.org/.
     /// PCRE antlr g4 file: CommonRegex.g4.
     /// </summary>
-    public static class CommonRegex
+    internal static class CommonRegex
     {
         private static readonly LRUCache<string, Regex> RegexCache = new LRUCache<string, Regex>(15);
 

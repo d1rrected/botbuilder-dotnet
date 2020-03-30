@@ -41,18 +41,18 @@ namespace AdaptiveExpressions
         /// <summary>
         /// Read only Dictionary of built in functions.
         /// </summary>
-        public static readonly IDictionary<string, ExpressionEvaluator> StandardFunctions = GetStandardFunctions();
+        internal static readonly IDictionary<string, ExpressionEvaluator> StandardFunctions = GetStandardFunctions();
 
         /// <summary>
         /// Random number generator used for expressions.
         /// </summary>
         /// <remarks>This is exposed so that you can explicitly seed the random number generator for tests.</remarks>
-        public static readonly Random Randomizer = new Random();
+        private static readonly Random Randomizer = new Random();
 
         /// <summary>
         /// The default date time format string.
         /// </summary>
-        public static readonly string DefaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+        private static readonly string DefaultDateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
 
         /// <summary>
         /// Object used to lock Randomizer.
@@ -508,44 +508,6 @@ namespace AdaptiveExpressions
             return error;
         }
 
-        /// <summary>
-        /// Evaluate expression children and return them.
-        /// </summary>
-        /// <param name="expression">Expression with children.</param>
-        /// <param name="state">Global state.</param>
-        /// <param name="verify">Optional function to verify each child's result.</param>
-        /// <returns>List of child values or error message.</returns>
-        public static (IReadOnlyList<object>, string error) EvaluateChildren(Expression expression, IMemory state, VerifyExpression verify = null)
-        {
-            var args = new List<object>();
-            object value;
-            string error = null;
-            var pos = 0;
-            foreach (var child in expression.Children)
-            {
-                (value, error) = child.TryEvaluate(state);
-                if (error != null)
-                {
-                    break;
-                }
-
-                if (verify != null)
-                {
-                    error = verify(value, child, pos);
-                }
-
-                if (error != null)
-                {
-                    break;
-                }
-
-                args.Add(value);
-                ++pos;
-            }
-
-            return (args, error);
-        }
-
         // Apply -- these are helpers for adding functions to the expression library.
 
         /// <summary>
@@ -761,54 +723,12 @@ namespace AdaptiveExpressions
                 validator);
 
         /// <summary>
-        /// Transform a string into another string.
-        /// </summary>
-        /// <param name="type">Expression type.</param>
-        /// <param name="function">Function to apply.</param>
-        /// <returns>Delegate for evaluating an expression.</returns>
-        public static ExpressionEvaluator StringTransform(string type, Func<IReadOnlyList<object>, object> function)
-            => new ExpressionEvaluator(type, Apply(function, VerifyStringOrNull), ReturnType.String, ValidateUnaryString);
-
-        /// <summary>
-        /// Transform a date-time to another date-time.
-        /// </summary>
-        /// <param name="type">Expression type.</param>
-        /// <param name="function">Transformer.</param>
-        /// <returns>Delegate for evaluating expression.</returns>
-        public static ExpressionEvaluator TimeTransform(string type, Func<DateTime, int, DateTime> function)
-            => new ExpressionEvaluator(
-                type,
-                (expr, state) =>
-                {
-                    object value = null;
-                    string error = null;
-                    IReadOnlyList<object> args;
-                    (args, error) = EvaluateChildren(expr, state);
-                    if (error == null)
-                    {
-                        if (args[0] is string string0 && args[1].IsInteger())
-                        {
-                            var formatString = (args.Count() == 3 && args[2] is string string1) ? string1 : DefaultDateTimeFormat;
-                            (value, error) = ParseISOTimestamp(string0, dt => function(dt, Convert.ToInt32(args[1])).ToString(formatString));
-                        }
-                        else
-                        {
-                            error = $"{expr} could not be evaluated";
-                        }
-                    }
-
-                    return (value, error);
-                },
-                ReturnType.String,
-                expr => ValidateArityAndAnyType(expr, 2, 3, ReturnType.String, ReturnType.Number));
-
-        /// <summary>
         /// Lookup an index property of instance.
         /// </summary>
         /// <param name="instance">Instance with property.</param>
         /// <param name="index">Property to lookup.</param>
         /// <returns>Value and error information if any.</returns>
-        public static (object value, string error) AccessIndex(object instance, int index)
+        internal static (object value, string error) AccessIndex(object instance, int index)
         {
             // NOTE: This returns null rather than an error if property is not present
             if (instance == null)
@@ -847,7 +767,7 @@ namespace AdaptiveExpressions
         /// <param name="property">Property to lookup.</param>
         /// <param name="value">Value of property.</param>
         /// <returns>True if property is present and binds value.</returns>
-        public static bool TryAccessProperty(object instance, string property, out object value)
+        internal static bool TryAccessProperty(object instance, string property, out object value)
         {
             var isPresent = false;
             value = null;
@@ -905,7 +825,7 @@ namespace AdaptiveExpressions
         /// <param name="property">Property be set.</param>
         /// <param name="value">Value be set.</param>
         /// <returns>Value and error information if any.</returns>
-        public static (object result, string error) SetProperty(object instance, string property, object value)
+        internal static (object result, string error) SetProperty(object instance, string property, object value)
         {
             var result = value;
             string error = null;
@@ -952,11 +872,49 @@ namespace AdaptiveExpressions
         }
 
         /// <summary>
+        /// Evaluate expression children and return them.
+        /// </summary>
+        /// <param name="expression">Expression with children.</param>
+        /// <param name="state">Global state.</param>
+        /// <param name="verify">Optional function to verify each child's result.</param>
+        /// <returns>List of child values or error message.</returns>
+        internal static (IReadOnlyList<object>, string error) EvaluateChildren(Expression expression, IMemory state, VerifyExpression verify = null)
+        {
+            var args = new List<object>();
+            object value;
+            string error = null;
+            var pos = 0;
+            foreach (var child in expression.Children)
+            {
+                (value, error) = child.TryEvaluate(state);
+                if (error != null)
+                {
+                    break;
+                }
+
+                if (verify != null)
+                {
+                    error = verify(value, child, pos);
+                }
+
+                if (error != null)
+                {
+                    break;
+                }
+
+                args.Add(value);
+                ++pos;
+            }
+
+            return (args, error);
+        }
+
+        /// <summary>
         /// Convert constant JValue to base type value.
         /// </summary>
         /// <param name="obj">input object.</param>
         /// <returns>Corresponding base type if input is a JValue.</returns>
-        public static object ResolveValue(object obj)
+        internal static object ResolveValue(object obj)
         {
             object value;
             if (!(obj is JValue jval))
@@ -988,12 +946,32 @@ namespace AdaptiveExpressions
         }
 
         /// <summary>
+        /// Return new object list replace jarray.ToArray&lt;object&gt;().
+        /// </summary>
+        /// <param name="instance">List to resolve.</param>
+        /// <returns>Resolved list.</returns>
+        internal static IList ResolveListValue(object instance)
+        {
+            IList result = null;
+            if (instance is JArray ja)
+            {
+                result = (IList)ja.ToObject(typeof(List<object>));
+            }
+            else if (TryParseList(instance, out var list))
+            {
+                result = list;
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Try to accumulate the path from an Accessor or Element, from right to left.
         /// </summary>
         /// <param name="expression">expression.</param>
         /// <param name="state">scope.</param>
         /// <returns>return the accumulated path and the expression left unable to accumulate.</returns>
-        public static (string path, Expression left, string error) TryAccumulatePath(Expression expression, IMemory state)
+        internal static (string path, Expression left, string error) TryAccumulatePath(Expression expression, IMemory state)
         {
             var path = string.Empty;
             var left = expression;
@@ -1045,6 +1023,48 @@ namespace AdaptiveExpressions
 
             return (path, left, null);
         }
+
+        /// <summary>
+        /// Transform a string into another string.
+        /// </summary>
+        /// <param name="type">Expression type.</param>
+        /// <param name="function">Function to apply.</param>
+        /// <returns>Delegate for evaluating an expression.</returns>
+        private static ExpressionEvaluator StringTransform(string type, Func<IReadOnlyList<object>, object> function)
+            => new ExpressionEvaluator(type, Apply(function, VerifyStringOrNull), ReturnType.String, ValidateUnaryString);
+
+        /// <summary>
+        /// Transform a date-time to another date-time.
+        /// </summary>
+        /// <param name="type">Expression type.</param>
+        /// <param name="function">Transformer.</param>
+        /// <returns>Delegate for evaluating expression.</returns>
+        private static ExpressionEvaluator TimeTransform(string type, Func<DateTime, int, DateTime> function)
+            => new ExpressionEvaluator(
+                type,
+                (expr, state) =>
+                {
+                    object value = null;
+                    string error = null;
+                    IReadOnlyList<object> args;
+                    (args, error) = EvaluateChildren(expr, state);
+                    if (error == null)
+                    {
+                        if (args[0] is string string0 && args[1].IsInteger())
+                        {
+                            var formatString = (args.Count() == 3 && args[2] is string string1) ? string1 : DefaultDateTimeFormat;
+                            (value, error) = ParseISOTimestamp(string0, dt => function(dt, Convert.ToInt32(args[1])).ToString(formatString));
+                        }
+                        else
+                        {
+                            error = $"{expr} could not be evaluated";
+                        }
+                    }
+
+                    return (value, error);
+                },
+                ReturnType.String,
+                expr => ValidateArityAndAnyType(expr, 2, 3, ReturnType.String, ReturnType.Number));
 
         private static void ValidateAccessor(Expression expression)
         {
@@ -1192,26 +1212,6 @@ namespace AdaptiveExpressions
             else
             {
                 result = string.Empty;
-            }
-
-            return result;
-        }
-
-        /// <summary>
-        /// Return new object list replace jarray.ToArray&lt;object&gt;().
-        /// </summary>
-        /// <param name="instance">List to resolve.</param>
-        /// <returns>Resolved list.</returns>
-        private static IList ResolveListValue(object instance)
-        {
-            IList result = null;
-            if (instance is JArray ja)
-            {
-                result = (IList)ja.ToObject(typeof(List<object>));
-            }
-            else if (TryParseList(instance, out var list))
-            {
-                result = list;
             }
 
             return result;
